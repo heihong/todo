@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8">
   <title>hello-backbonejs</title>
-  <script type="text/javascript" src="js/lib/jquery.min.js"></script>
   <script type="text/javascript" src="js/lib/require.js"></script>
   <link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.1.1/css/bootstrap.min.css">
 </head>
@@ -13,50 +12,166 @@
 	<hr/>
 	<div class="page"></div>
 	</div>
+   	<script type='text/template' id="user-list-template">
+			<a href="#/new" class="btn btn-primary">New User</a>
 	
-
-	
-   <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.2/underscore-min.js" type="text/javascript"></script>
+			<table class="table striped">
+			<hr/>
+				<thead>
+					<tr>
+						<th>Firt Name</th>
+						<th>Last Name</th>
+						<th>Age</th>
+					</tr>
+				</thead>
+				<tbody>
+				
+				  <% _.each(users, function(user) { %>
+						<tr>
+							<td><%= user.get('firstname')%></td>
+							<td><%= user.get('lastname')%></td>
+							<td><%= user.get('age')%></td>
+							<td><a href="#/edit/<%=user.id%>" class="btn">Edit User</a></td>
+						</tr>
+					<%});%>
+				</tbody>
+			</table>
+	</script>
+	<script type='text/template' id="edit-list-template">
+		<form class="edit-user-form">
+			<legend>Create User</legend>
+			<label>Firt Name</label>
+			<input type="text" name="firstname"/>
+			<label>Last Name</label>
+			<input type="text" name="lastname"/>
+			<label>Age</label>
+			<input type="text" name="age"/>
+			<hr/>
+			<button type="submit" class="btn">Create</button>
+		</form>
+	</script>
+	  <script type="text/javascript" src="js/lib/jquery.min.js"></script>
+	 <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.2/underscore-min.js" type="text/javascript"></script>
    <script src="http://cdnjs.cloudflare.com/ajax/libs/backbone.js/0.9.2/backbone-min.js"></script>
    <script type="text/javascript" src="js/main.js"></script>
    
-   	<script type='text/template' id="user-list-template">
-		<h4>Templing</h4>
-	</script>
    <script>
-   
-		 $.ajaxPrefilter( function( options, originalOptions, jqXHR ) {
+		
+/*		var User=Backbone.Model.extend({
+			default:{
+				firstname:'',
+				lastname:'',
+				age:null
+			}
+		});
+		var Users=Backbone.Collection.extend({
+			model: User
+		});
+		
+		
+	*/	
+	
+    $.ajaxPrefilter( function( options, originalOptions, jqXHR ) {
       options.url = 'http://backbonejs-beginner.herokuapp.com' + options.url;
     });
-		var Users=Backbone.Collection.extend({
-			url:'/users'
-		});
+    var Users = Backbone.Collection.extend({
+      url: '/users'
+    });
+    var User = Backbone.Model.extend({
+      urlRoot: '/users'
+    });
+
+
 		var UserList=Backbone.View.extend({
 			el:'.page',
 			render:function(){
 				var that=this;
 				var users=new Users();
-				console.log(users.models);
+			//users.add([{firstname:"Jean",lastname:"Durant",age:20}]);
+			//	users.add([{firstname:"Denis",lastname:"Dupont",age:15}]);
+			//	users.add([{firstname:"Marck",lastname:"Davis",age:18}]);
+				console.log(users);
 				users.fetch({
 					success:function(users){
-						var template=_.template($('#user-list-template').html(),{users: users.models});
+					console.log(users.models);
+						var template = _.template($('#user-list-template').html())({users: users.models});
 						that.$el.html(template);
 					}
 				})
 			}
 		});
 		
+		$.fn.serializeObject = function() {
+			  var o = {};
+			  var a = this.serializeArray();
+			  $.each(a, function() {
+				  if (o[this.name] !== undefined) {
+					  if (!o[this.name].push) {
+						  o[this.name] = [o[this.name]];
+					  }
+					  o[this.name].push(this.value || '');
+				  } else {
+					  o[this.name] = this.value || '';
+				  }
+			  });
+			  return o;
+		};
+		
+		var EditUser= Backbone.View.extend({
+			el:'.page',
+			render: function(options){
+				var that=this;
+				if(options.id){
+						var user= new User({id:options.id});
+						user.fetch({
+							success:function(user){
+								var template = _.template($('#edit-list-template').html(), {user:user});
+								that.$el.html(template);
+							}
+						})
+				}
+				else{
+					var template = _.template($('#edit-list-template').html(), {user:null});
+					this.$el.html(template);
+				}
+			},
+			events:{
+				'submit .edit-user-form': 'saveUser'
+			},
+			saveUser:function(e){
+			
+				var userDetail=$(e.currentTarget).serializeObject();
+				var user=new User();
+				user.save(userDetail,{
+					success:function(user){
+						router.navigate('',{trigger:true});
+					
+		
+					}
+				});
+				
+				return false;
+			}
+		});
+		
+		
 		var Router =Backbone.Router.extend({
 			routes:{
-				'':'home'
+				'':'home',
+				'new': 'editUser',
+				'edit/:id':'editUser'
 				
 			}
 		});
 		
 		var userList=new UserList();
+		var editUser=new EditUser();
 			var router =new Router(); 
 			router.on('route:home',function(){ // listen on the route
 				userList.render();
+			}); 
+			router.on('route:editUser',function(id){ // listen on the route
+				editUser.render({id:id});
 			}); 
 			
 			Backbone.history.start();
