@@ -39,15 +39,19 @@
 	</script>
 	<script type='text/template' id="edit-list-template">
 		<form class="edit-user-form">
-			<legend>Create User</legend>
+			<legend><%= user ? 'Update':'Create' %> User</legend>
 			<label>Firt Name</label>
-			<input type="text" name="firstname"/>
+			<input type="text" name="firstname" value="<%=user ?user.get('firstname'):''%>"/>
 			<label>Last Name</label>
-			<input type="text" name="lastname"/>
+			<input type="text" name="lastname" value="<%=user ?user.get('lastname'):''%>"/>
 			<label>Age</label>
-			<input type="text" name="age"/>
+			<input type="text" name="age" value="<%=user ?user.get('age'):''%>"/>
 			<hr/>
-			<button type="submit" class="btn">Create</button>
+			<button type="submit" class="btn"><%= user ? 'Update':'Create' %></button>
+				<% if(user){%>
+				<input type="hidden" name="id" value="<%=user.id%>"/>
+				<button class="btn btn-danger delete">Delete</button>
+			<% };%>
 		</form>
 	</script>
 	  <script type="text/javascript" src="js/lib/jquery.min.js"></script>
@@ -122,21 +126,22 @@
 			render: function(options){
 				var that=this;
 				if(options.id){
-						var user= new User({id:options.id});
-						user.fetch({
+						that.user= new User({id:options.id});
+						that.user.fetch({
 							success:function(user){
-								var template = _.template($('#edit-list-template').html(), {user:user});
+								var template =_.template($('#edit-list-template').html())({user: user});
 								that.$el.html(template);
 							}
 						})
 				}
 				else{
-					var template = _.template($('#edit-list-template').html(), {user:null});
+					var template = _.template($('#edit-list-template').html())({user: null});
 					this.$el.html(template);
 				}
 			},
 			events:{
-				'submit .edit-user-form': 'saveUser'
+				'submit .edit-user-form': 'saveUser',
+				'click .delete': 'deleteUser'
 			},
 			saveUser:function(e){
 			
@@ -150,6 +155,15 @@
 					}
 				});
 				
+				return false;
+			},
+			deleteUser:function(e){
+				this.user.destroy({
+					success:function(){
+						console.log('destroy');
+						router.navigate('',{trigger:true});
+					}
+				});
 				return false;
 			}
 		});
